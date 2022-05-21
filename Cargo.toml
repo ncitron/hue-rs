@@ -11,3 +11,4 @@ tokio = { version = "1", features = ["full"] }
 serde = "1.0.137"
 eyre = "0.6.8"
 dotenv = "0.15.0"
+clap = { version = "3.1.18", features = ["derive"] }

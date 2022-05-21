@@ -3,6 +3,7 @@ use serde::ser::Serialize;
 use eyre::Result;
 use dotenv::dotenv;
 use std::env;
+use clap::{Parser, Subcommand};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -16,10 +17,39 @@ async fn main() -> Result<()> {
         user: &user
     };
 
-    // client.set_group_color(1, 0.1418, 0.0986).await?;
-    client.set_group_on(1, true).await?;
+    let cli = Cli::parse();
 
-    Ok(())
+    match &cli.command {
+        Commands::Toggle { group, status } => {
+            match status.as_str() {
+                "on" => {
+                    client.set_group_on(*group, true).await
+                },
+                "off" => {
+                    client.set_group_on(*group, false).await
+                },
+                _ => {
+                    Err(eyre::eyre!("status must be on or off"))
+                }
+            }
+        }
+        Commands::Color { group, x, y } => {
+            client.set_group_color(*group, *x, *y).await
+        }
+    }
+}
+
+#[derive(Parser)]
+#[clap(author, version, about)]
+struct Cli {
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Toggle { group: usize, status: String },
+    Color { group: usize, x: f64, y: f64 },
 }
 
 struct HueClient<'a> {
