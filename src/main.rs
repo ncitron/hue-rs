@@ -32,9 +32,9 @@ async fn main() -> Result<()> {
                     Err(eyre::eyre!("status must be on or off"))
                 }
             }
-        }
-        Commands::Color { group, x, y } => {
-            client.set_group_color(*group, *x, *y).await
+        },
+        Commands::Color { group, xy } => {
+            client.set_group_color(*group, xy[0], xy[1]).await
         }
     }
 }
@@ -49,12 +49,16 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Toggle { group: usize, status: String },
-    Color { group: usize, x: f64, y: f64 },
+    Color {
+        group: usize,
+        #[clap(long, min_values=2, max_values=2)]
+        xy: Vec<f64>,
+    },
 }
 
 struct HueClient<'a> {
     ip: &'a str,
-    user: &'a str
+    user: &'a str,
 }
 
 impl<'a> HueClient<'a> {
@@ -88,6 +92,7 @@ impl<'a> HueClient<'a> {
 
         Ok(())
     }
+
     pub async fn set_light_color(&self, light: usize, x: f64, y: f64) -> Result<()> {
         let mut state = HashMap::new();
         state.insert("xy", vec![x, y]);
