@@ -1,21 +1,16 @@
 use std::collections::HashMap;
 use serde::ser::Serialize;
+use serde::Deserialize;
 use eyre::Result;
-use dotenv::dotenv;
-use std::env;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
+use std::fs::read_to_string;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv().ok();
-
-    let ip = env::var("IP_ADDR")?;
-    let user = env::var("USER_KEY")?;
-
-    let client = HueClient {
-        ip: &ip,
-        user: &user
-    };
+   
+    let home = dirs::home_dir().unwrap();
+    let client = HueClient::from_config(home.join("hueconfig.json"))?;
 
     let cli = Cli::parse();
 
@@ -56,12 +51,25 @@ enum Commands {
     },
 }
 
-struct HueClient<'a> {
-    ip: &'a str,
-    user: &'a str,
+struct HueClient {
+    ip: String,
+    user: String,
 }
 
-impl<'a> HueClient<'a> {
+#[derive(Deserialize)]
+struct Config {
+    ip: String,
+    user: String,
+}
+
+impl HueClient {
+    pub fn from_config(config: PathBuf) -> Result<HueClient> {
+        let config_str = read_to_string(config)?;
+        let config: Config = serde_json::from_str(&config_str)?;
+        
+        Ok(HueClient { ip: config.ip, user: config.user })
+    }
+
     async fn set_light_state<V: Serialize>(&self, light: usize, state: HashMap<&str, V>) -> Result<()> {
         let client = reqwest::Client::new();
         let url = format!("http://{}/api/{}/lights/{}/state", self.ip, self.user, light); 
